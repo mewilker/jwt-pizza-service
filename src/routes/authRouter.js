@@ -99,6 +99,7 @@ authRouter.delete(
 );
 
 // updateUser
+//TODO: is this endpoint ever used by either application?
 authRouter.put(
   '/:userId',
   authRouter.authenticateToken,

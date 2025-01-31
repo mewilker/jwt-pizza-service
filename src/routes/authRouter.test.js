@@ -24,16 +24,26 @@ test('login', async () => {
   expect(loginRes.body.user).toMatchObject(user);
 });
 
+test('login bad password', async () =>{
+  const response = await request(app).put('/api/auth').send({ name: 'pizza diner',email: 'reg@test.com', password: 'bad'});
+  expect(response.status).toBe(404);
+});
+
 test('register', async () =>{
   const newUser = { name: "rookie", email: "tbd", password: "rookie"}
   newUser.email = Math.random().toString(36).substring(2,12);
   const response = await request(app).post('/api/auth').send(newUser);
   expect(response.status).toBe(200);
   expectValidJwt(response.body.token);
-
+  
   const { password, ...user } = { ...newUser, roles: [{ role: 'diner' }] };
   expect(response.body.user).toMatchObject(user);
 });
+
+test('register bad request', async () =>{
+  const response = await request(app).post('/api/auth').send({name: 'reg@test.com'});
+  expect(response.status).toBe(400)
+})
 
 test('logout', async () => {
   const response =  await request(app)
@@ -42,6 +52,11 @@ test('logout', async () => {
     .send();
   expect(response.status).toBe(200);
 });
+
+test('logout bad auth', async () =>{
+  const response = await request(app).delete('/api/auth').set("Authorization", `Bearer badboy`).send();
+  expect(response.status).toBe(401);
+})
 
 function expectValidJwt(potentialJwt) {
   expect(potentialJwt).toMatch(/^[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*$/);
