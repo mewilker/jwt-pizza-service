@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../service');
-const utils = require('../testUtils')
+const utils = require('../testUtils');
 
 const testFranchiseUser = { name: 'Franchise OwnerToBe', email: 'TBD', password: 'a' };
 let testFranchiseUserAuthToken;
