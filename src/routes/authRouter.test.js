@@ -21,7 +21,8 @@ test('login', async () => {
   expect(loginRes.status).toBe(200);
   utils.expectValidJwt(loginRes.body.token);
 
-  const { password, ...user } = { ...testUser, roles: [{ role: 'diner' }] };
+  const user = { ...testUser, roles: [{ role: 'diner' }] };
+  delete user.password;
   expect(loginRes.body.user).toMatchObject(user);
 });
 
@@ -37,7 +38,8 @@ test('register', async () =>{
   expect(response.status).toBe(200);
   utils.expectValidJwt(response.body.token);
   
-  const { password, ...user } = { ...newUser, roles: [{ role: 'diner' }] };
+  const user = { ...newUser, roles: [{ role: 'diner' }] };
+  delete user.password
   expect(response.body.user).toMatchObject(user);
 });
 
