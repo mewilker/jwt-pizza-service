@@ -94,6 +94,22 @@ test('cannot deleteFranchise as non-admin', async() =>{
   expect(listResponse.body).toContainEqual(expect.objectContaining({id: franchiseInfo.id, name:franchiseInfo.name, stores: expect.any(Array)}))
 })
 
+test('createStore', async () => {
+  franchiseInfo = await successfulFranchiseCreate();
+  await successfulStoreCreate(franchiseInfo);
+})
+
+async function successfulStoreCreate(franchiseInfo){
+  const storeName = utils.randomName();
+  const response = await request(app)
+  .post(`/api/franchise/${franchiseInfo.id}/store`)
+  .set("Authorization", `Bearer ${adminToken}`)
+  .send({name:storeName});
+  expect(response.status).toBe(200);
+  expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: storeName, franchiseId:franchiseInfo.id}))
+  return {id: response.body.id, name: storeName}
+}
+
 async function successfulFranchiseCreate(){
   const franchiseName = utils.randomName();
   const response = await request(app)
