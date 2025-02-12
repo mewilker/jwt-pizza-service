@@ -69,7 +69,7 @@ test('createFranchise cannot use duplicate names', async() =>{
 })
 
 test('deleteFranchise', async() =>{
-  franchiseInfo = await successfulFranchiseCreate()
+  const franchiseInfo = await successfulFranchiseCreate()
   const response = await request(app)
   .delete(`/api/franchise/${franchiseInfo.id}`)
   .set("Authorization", `Bearer ${adminToken}`)
@@ -85,7 +85,7 @@ test('deleteFranchise', async() =>{
 })
 
 test('cannot deleteFranchise as non-admin', async() =>{
-  franchiseInfo = await successfulFranchiseCreate()
+  const franchiseInfo = await successfulFranchiseCreate()
   const deleteResponse = await request(app)
   .delete(`/api/franchise/${franchiseInfo.id}`)
   .set("Authorization", `Bearer ${testFranchiseUserAuthToken}`)
@@ -101,17 +101,17 @@ test('cannot deleteFranchise as non-admin', async() =>{
 })
 
 test('createStore as admin', async () => {
-  franchiseInfo = await successfulFranchiseCreate();
+  const franchiseInfo = await successfulFranchiseCreate();
   await successfulStoreCreate(franchiseInfo, adminToken);
 })
 
 test('createStore as franchisee', async () => {
-  franchiseInfo = await successfulFranchiseCreate();
+  const franchiseInfo = await successfulFranchiseCreate();
   await successfulStoreCreate(franchiseInfo, testFranchiseUserAuthToken);
 })
 
 test('cannot create store as non-admin', async() =>{
-  franchiseInfo = await successfulFranchiseCreate();
+  const franchiseInfo = await successfulFranchiseCreate();
   const storeName = utils.randomName();
   const response = await request(app)
   .post(`/api/franchise/${franchiseInfo.id}/store`)
@@ -119,6 +119,35 @@ test('cannot create store as non-admin', async() =>{
   .send({name:storeName});
   expect(response.status).toBe(403);
 })
+
+test('cannot create a store without franchise', async () =>{
+  const storeName = utils.randomName();
+  const response = await request(app)
+  .post(`/api/franchise/0/store`)
+  .set("Authorization", `Bearer ${adminToken}`)
+  .send({name:storeName});
+  expect(response.status).toBe(500);
+})
+
+test('deleteStore', async()=>{
+  const franchiseInfo = await successfulFranchiseCreate();
+  const storeInfo = await successfulStoreCreate(franchiseInfo,adminToken);
+  const response = await request(app)
+  .delete(`/api/franchise/${franchiseInfo.id}/store/${storeInfo.id}`)
+  .set("Authorization", `Bearer ${adminToken}`)
+  .send();
+  expect(response.status).toBe(200);
+});
+
+test('non-admin cannot deleteStore', async()=>{
+  const franchiseInfo = await successfulFranchiseCreate();
+  const storeInfo = await successfulStoreCreate(franchiseInfo,adminToken);
+  const response = await request(app)
+  .delete(`/api/franchise/${franchiseInfo.id}/store/${storeInfo.id}`)
+  .set("Authorization", `Bearer ${plebToken}`)
+  .send();
+  expect(response.status).toBe(403);
+});
 
 async function successfulStoreCreate(franchiseInfo, token){
   const storeName = utils.randomName();
