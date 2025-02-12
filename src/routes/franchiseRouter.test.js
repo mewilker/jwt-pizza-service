@@ -2,8 +2,10 @@ const request = require('supertest');
 const app = require('../service');
 const utils = require('../testUtils')
 
-const testUser = { name: 'Franchise OwnerToBe', email: 'TBD', password: 'a' };
-let testUserAuthToken;
+const testFranchiseUser = { name: 'Franchise OwnerToBe', email: 'TBD', password: 'a' };
+let testFranchiseUserAuthToken;
+const plebUser = { name: 'sneaky dinner', email: 'TBD', password: 'a'}
+let plebToken;
 let adminUser;
 let adminToken;
 
@@ -12,10 +14,14 @@ if (process.env.VSCODE_INSPECTOR_OPTIONS) {
 }
 
 beforeAll(async () => {
-  testUser.email = utils.randomName() + '@test.com';
-  const registerRes = await request(app).post('/api/auth').send(testUser);
-  testUserAuthToken = registerRes.body.token;
-  utils.expectValidJwt(testUserAuthToken);
+  testFranchiseUser.email = utils.randomName() + '@test.com';
+  const registerRes = await request(app).post('/api/auth').send(testFranchiseUser);
+  testFranchiseUserAuthToken = registerRes.body.token;
+  utils.expectValidJwt(testFranchiseUserAuthToken);
+  plebUser.email = utils.randomName() + '@test.com';
+  const plebRegisterResponse = await request(app).post('/api/auth').send(plebUser);
+  plebToken = plebRegisterResponse.body.token;
+  utils.expectValidJwt(plebRegisterResponse.body.token);
   adminUser = await utils.createAdminUser();
   const adminRes = await request(app).put('/api/auth').send(adminUser);
   adminToken = adminRes.body.token;
@@ -25,7 +31,7 @@ beforeAll(async () => {
 test('getFranchises', async () => {
     const response =  await request(app)
     .get('/api/franchise')
-    .set("Authorization", `Bearer ${testUserAuthToken}`)
+    .set("Authorization", `Bearer ${testFranchiseUserAuthToken}`)
     .send();
   expect(response.status).toBe(200);
   expect(response.body).toBeInstanceOf(Array)
@@ -42,8 +48,8 @@ test('createFranchise fails when not admin', async () =>{
   const franchiseName = utils.randomName();
   const response = await request(app)
   .post('/api/franchise')
-  .set("Authorization", `Bearer ${testUserAuthToken}`)
-  .send({name:franchiseName, admins:[{email:testUser.email}]});
+  .set("Authorization", `Bearer ${testFranchiseUserAuthToken}`)
+  .send({name:franchiseName, admins:[{email:testFranchiseUser.email}]});
   expect(response.status).toBe(403);
 })
 
@@ -52,13 +58,13 @@ test('createFranchise cannot use duplicate names', async() =>{
   const response = await request(app)
   .post('/api/franchise')
   .set("Authorization", `Bearer ${adminToken}`)
-  .send({name:franchiseName, admins:[{email:testUser.email}]});
+  .send({name:franchiseName, admins:[{email:testFranchiseUser.email}]});
   expect(response.status).toBe(200);
-  expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: franchiseName, admins:[{email:testUser.email, id: expect.any(Number), name:'Franchise OwnerToBe'}]}))
+  expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: franchiseName, admins:[{email:testFranchiseUser.email, id: expect.any(Number), name:'Franchise OwnerToBe'}]}))
   const duppedResponse = await request(app)
   .post('/api/franchise')
   .set("Authorization", `Bearer ${adminToken}`)
-  .send({name:franchiseName, admins:[{email:testUser.email}]});
+  .send({name:franchiseName, admins:[{email:testFranchiseUser.email}]});
   expect(duppedResponse.status).toBe(500);
 })
 
@@ -71,7 +77,7 @@ test('deleteFranchise', async() =>{
   expect(response.status).toBe(200);
   const listResponse =  await request(app)
     .get('/api/franchise')
-    .set("Authorization", `Bearer ${testUserAuthToken}`)
+    .set("Authorization", `Bearer ${testFranchiseUserAuthToken}`)
     .send();
   expect(listResponse.status).toBe(200);
   expect(listResponse.body).toBeInstanceOf(Array)
@@ -82,28 +88,43 @@ test('cannot deleteFranchise as non-admin', async() =>{
   franchiseInfo = await successfulFranchiseCreate()
   const deleteResponse = await request(app)
   .delete(`/api/franchise/${franchiseInfo.id}`)
-  .set("Authorization", `Bearer ${testUserAuthToken}`)
+  .set("Authorization", `Bearer ${testFranchiseUserAuthToken}`)
   .send();
   expect(deleteResponse.status).toBe(403);
   const listResponse =  await request(app)
     .get('/api/franchise')
-    .set("Authorization", `Bearer ${testUserAuthToken}`)
+    .set("Authorization", `Bearer ${testFranchiseUserAuthToken}`)
     .send();
   expect(listResponse.status).toBe(200);
   expect(listResponse.body).toBeInstanceOf(Array)
   expect(listResponse.body).toContainEqual(expect.objectContaining({id: franchiseInfo.id, name:franchiseInfo.name, stores: expect.any(Array)}))
 })
 
-test('createStore', async () => {
+test('createStore as admin', async () => {
   franchiseInfo = await successfulFranchiseCreate();
-  await successfulStoreCreate(franchiseInfo);
+  await successfulStoreCreate(franchiseInfo, adminToken);
 })
 
-async function successfulStoreCreate(franchiseInfo){
+test('createStore as franchisee', async () => {
+  franchiseInfo = await successfulFranchiseCreate();
+  await successfulStoreCreate(franchiseInfo, testFranchiseUserAuthToken);
+})
+
+test('cannot create store as non-admin', async() =>{
+  franchiseInfo = await successfulFranchiseCreate();
   const storeName = utils.randomName();
   const response = await request(app)
   .post(`/api/franchise/${franchiseInfo.id}/store`)
-  .set("Authorization", `Bearer ${adminToken}`)
+  .set("Authorization", `Bearer ${plebToken}`)
+  .send({name:storeName});
+  expect(response.status).toBe(403);
+})
+
+async function successfulStoreCreate(franchiseInfo, token){
+  const storeName = utils.randomName();
+  const response = await request(app)
+  .post(`/api/franchise/${franchiseInfo.id}/store`)
+  .set("Authorization", `Bearer ${token}`)
   .send({name:storeName});
   expect(response.status).toBe(200);
   expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: storeName, franchiseId:franchiseInfo.id}))
@@ -115,8 +136,8 @@ async function successfulFranchiseCreate(){
   const response = await request(app)
   .post('/api/franchise')
   .set("Authorization", `Bearer ${adminToken}`)
-  .send({name:franchiseName, admins:[{email:testUser.email}]});
+  .send({name:franchiseName, admins:[{email:testFranchiseUser.email}]});
   expect(response.status).toBe(200);
-  expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: franchiseName, admins:[{email:testUser.email, id: expect.any(Number), name:'Franchise OwnerToBe'}]}))
+  expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: franchiseName, admins:[{email:testFranchiseUser.email, id: expect.any(Number), name:'Franchise OwnerToBe'}]}))
   return {id:response.body.id, name:franchiseName};
 }
