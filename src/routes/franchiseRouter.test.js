@@ -35,13 +35,7 @@ test('getFranchises', async () => {
 });
 
 test('createFranchise for TestUser', async () => {
-  const franchiseName = utils.randomName();
-  const response = await request(app)
-  .post('/api/franchise')
-  .set("Authorization", `Bearer ${adminToken}`)
-  .send({name:franchiseName, admins:[{email:testUser.email}]});
-  expect(response.status).toBe(200);
-  expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: franchiseName, admins:[{email:testUser.email, id: expect.any(Number), name:'Franchise OwnerToBe'}]}))
+  await successfulFranchiseCreate();
 })
 
 test('createFranchise fails when not admin', async () =>{
@@ -69,6 +63,38 @@ test('createFranchise cannot use duplicate names', async() =>{
 })
 
 test('deleteFranchise', async() =>{
+  franchiseInfo = await successfulFranchiseCreate()
+  const response = await request(app)
+  .delete(`/api/franchise/${franchiseInfo.id}`)
+  .set("Authorization", `Bearer ${adminToken}`)
+  .send();
+  expect(response.status).toBe(200);
+  const listResponse =  await request(app)
+    .get('/api/franchise')
+    .set("Authorization", `Bearer ${testUserAuthToken}`)
+    .send();
+  expect(listResponse.status).toBe(200);
+  expect(listResponse.body).toBeInstanceOf(Array)
+  expect(listResponse.body).not.toContain(expect.objectContaining({id: franchiseInfo.id, name:franchiseInfo.name, stores: expect.any(Array)}))
+})
+
+test('cannot deleteFranchise as non-admin', async() =>{
+  franchiseInfo = await successfulFranchiseCreate()
+  const deleteResponse = await request(app)
+  .delete(`/api/franchise/${franchiseInfo.id}`)
+  .set("Authorization", `Bearer ${testUserAuthToken}`)
+  .send();
+  expect(deleteResponse.status).toBe(403);
+  const listResponse =  await request(app)
+    .get('/api/franchise')
+    .set("Authorization", `Bearer ${testUserAuthToken}`)
+    .send();
+  expect(listResponse.status).toBe(200);
+  expect(listResponse.body).toBeInstanceOf(Array)
+  expect(listResponse.body).toContainEqual(expect.objectContaining({id: franchiseInfo.id, name:franchiseInfo.name, stores: expect.any(Array)}))
+})
+
+async function successfulFranchiseCreate(){
   const franchiseName = utils.randomName();
   const response = await request(app)
   .post('/api/franchise')
@@ -76,16 +102,5 @@ test('deleteFranchise', async() =>{
   .send({name:franchiseName, admins:[{email:testUser.email}]});
   expect(response.status).toBe(200);
   expect(response.body).toEqual(expect.objectContaining({id: expect.any(Number), name: franchiseName, admins:[{email:testUser.email, id: expect.any(Number), name:'Franchise OwnerToBe'}]}))
-  const deleteResponse = await request(app)
-  .delete(`/api/franchise/${response.body.id}`)
-  .set("Authorization", `Bearer ${adminToken}`)
-  .send();
-  expect(deleteResponse.status).toBe(200);
-  const listResponse =  await request(app)
-    .get('/api/franchise')
-    .set("Authorization", `Bearer ${testUserAuthToken}`)
-    .send();
-  expect(listResponse.status).toBe(200);
-  expect(listResponse.body).toBeInstanceOf(Array)
-  expect(listResponse.body).not.toContain(expect.objectContaining({id: response.body.id, name:franchiseName, stores: expect.any(Array)}))
-})
+  return {id:response.body.id, name:franchiseName};
+}
