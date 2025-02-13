@@ -7,7 +7,6 @@ let plebToken;
 let adminUser;
 let adminToken;
 const franchisee = {name: "im sodone", email:'TBD', password: 'a'}
-let franchiseeToken;
 
 if (process.env.VSCODE_INSPECTOR_OPTIONS) {
     jest.setTimeout(60 * 1000 * 5); // 5 minutes
@@ -20,7 +19,6 @@ beforeAll(async () => {
     utils.expectValidJwt(response.body.token);
     franchisee.email = utils.randomName() + '@test.com';
     const franchiseeRes = await request(app).post('/api/auth').send(franchisee);
-    franchiseeToken = franchiseeRes.body.token;
     utils.expectValidJwt(franchiseeRes.body.token);
     adminUser = await utils.createAdminUser();
     const adminRes = await request(app).put('/api/auth').send(adminUser);
