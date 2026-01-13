@@ -8,7 +8,14 @@ JWTs are used for authentication objects.
 
 ## Deployment
 
-In order for the server to work correctly it must be configured by providing a `config.js` file.
+Commands to start the server:
+
+```sh
+cd src
+node index.js
+```
+
+In order for the server to work correctly it must be configured by providing a `config.js` file in the `src` directory.
 
 ```js
 module.exports =  {
