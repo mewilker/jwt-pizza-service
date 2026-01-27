@@ -28,7 +28,7 @@ apiRouter.use('/docs', (req, res) => {
   res.json({
     version: version.version,
     endpoints: [...authRouter.docs, ...userRouter.docs, ...orderRouter.docs, ...franchiseRouter.docs],
-    config: { factory: config.factory.url, db: config.db.connection.host },
+    config: { factory: config.factory.url, db: config.db.connection.host }, //why is this in here?
   });
 });
 
