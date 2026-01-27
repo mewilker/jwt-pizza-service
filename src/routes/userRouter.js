@@ -52,6 +52,7 @@ userRouter.put(
 );
 
 // deleteUser
+//TODO: IMPLEMENT ME
 userRouter.delete(
   '/:userId',
   authRouter.authenticateToken,
@@ -61,6 +62,7 @@ userRouter.delete(
 );
 
 // listUsers
+//TODO: IMPLEMENT ME
 userRouter.get(
   '/',
   authRouter.authenticateToken,
