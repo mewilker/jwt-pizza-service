@@ -1,13 +1,6 @@
 const request = require('supertest');
 const app = require('../../src/service');
 
-/*jest.mock('../../src/routes/authRouter.js', () => ({
-    authRouter: { docs: [] },
-    setAuthUser: (req, res, next) => next(),
-}));
-jest.mock('../../src/routes/orderRouter.js', () => ({ docs: [] }));
-jest.mock('../../src/routes/franchiseRouter.js', () => ({ docs: [] }));
-jest.mock('../../src/routes/userRouter.js', () => ({ docs: [] }));*/
 jest.mock('../../src/version.json', () => ({ version: '1.0.0' }));
 jest.mock('../../src/config.js', () => ({
     factory: { url: 'http://factory.local' },
@@ -29,8 +22,6 @@ jest.mock('../../src/config.js', () => ({
             expect(res.status).toBe(200);
             expect(res.body.version).toBe('1.0.0');
             expect(res.body.endpoints).toBeDefined();
-            expect(res.body.config.factory).toBe('http://factory.local');
-            expect(res.body.config.db).toBe('localhost');
         });
     });
 

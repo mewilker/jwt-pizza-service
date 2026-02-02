@@ -4,7 +4,6 @@ const orderRouter = require('./routes/orderRouter.js');
 const franchiseRouter = require('./routes/franchiseRouter.js');
 const userRouter = require('./routes/userRouter.js');
 const version = require('./version.json');
-const config = require('./config.js');
 
 const app = express();
 app.use(express.json());
@@ -27,8 +26,7 @@ apiRouter.use('/franchise', franchiseRouter);
 apiRouter.use('/docs', (req, res) => {
   res.json({
     version: version.version,
-    endpoints: [...authRouter.docs, ...userRouter.docs, ...orderRouter.docs, ...franchiseRouter.docs],
-    config: { factory: config.factory.url, db: config.db.connection.host }, //why is this in here?
+    endpoints: [...authRouter.docs, ...userRouter.docs, ...orderRouter.docs, ...franchiseRouter.docs]
   });
 });
 
