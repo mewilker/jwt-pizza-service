@@ -55,14 +55,6 @@ describe('Database Initialization', () => {
     });
 });
 
-describe('getMenu', () => {
-    it('should return menu items', async () => {
-        const menu = await DB.getMenu();
-        expect(Array.isArray(menu)).toBe(true);
-    });
-    //TODO: add a meatier test
-});
-
 describe('addMenuItem', () => {
     it('should add a menu item and return it with an id', async () => {
         const item = {
@@ -75,6 +67,24 @@ describe('addMenuItem', () => {
         expect(result.id).toBeDefined();
         expect(result.title).toBe(item.title);
         expect(result.price).toBe(item.price);
+        expect(result.description).toBe(item.description);
+        expect(result.image).toBe(item.image);
+    });
+});
+
+describe('getMenu', () => {
+    it.each([0,1,2,3])('should return %i menu items', async (count) => {
+        if (count > 0) {
+            await DB.addMenuItem({
+                title: `Pizza ${count}`,
+                description: `A pizza ${count}`,
+                image: `pizza-${count}.jpg`,
+                price: 10.99 + count,
+            });
+        }
+        const menu = await DB.getMenu();
+        expect(Array.isArray(menu)).toBe(true);
+        expect(menu.length).toBe(count);
     });
 });
 
