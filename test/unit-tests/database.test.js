@@ -1,7 +1,5 @@
 const { DB, Role } = require('../../src/database/database.js');
 
-const bcrypt = require('bcrypt');
-const mysql = require('mysql2/promise');
 const config = require('../../src/config.js');
 
 beforeAll(async () => {
@@ -205,12 +203,12 @@ describe('logoutUser', () => {
 describe('createFranchise', () => {
     it('should create a franchise with admins', async () => {
         const email = `admin-${Date.now()}@test.com`;
-        const admin = await DB.addUser({
-            name: 'Franchise Admin',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
+        // const admin = await DB.addUser({
+        //     name: 'Franchise Admin',
+        //     email,
+        //     password: 'password123',
+        //     roles: [{ role: Role.Admin }],
+        // });
         const franchise = await DB.createFranchise({
             name: `Franchise ${Date.now()}`,
             admins: [{ email }],
