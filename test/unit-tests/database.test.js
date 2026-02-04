@@ -48,11 +48,10 @@ describe('Database Initialization', () => {
         expect(rows[0].TABLE_NAME).toBe(tableName);
         connection.end();
     });
-    //FIXME: this backdoor is PUBLIC!!
     it('should have an admin user', async () => {
-        const admin = await DB.getUser('a@jwt.com', 'admin');
+        const admin = await DB.getUser(config.admin.email, config.admin.password);
         expect(admin).toBeDefined();
-        expect(admin.email).toBe('a@jwt.com');
+        expect(admin.email).toBe(config.admin.email);
     });
 });
 

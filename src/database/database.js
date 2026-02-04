@@ -343,9 +343,9 @@ class DB {
         for (const statement of dbModel.tableCreateStatements) {
           await connection.query(statement);
         }
-        //FIXME: this backdoor is PUBLIC!!
+        //FIXME: make sure the the default admin is defined in the config
         if (!dbExists) {
-          const defaultAdmin = { name: '常用名字', email: 'a@jwt.com', password: 'admin', roles: [{ role: Role.Admin }] };
+          const defaultAdmin = { name: '常用名字', email: config.admin.email, password: config.admin.password, roles: [{ role: Role.Admin }] };
           await this.addUser(defaultAdmin);
         }
       } finally {
