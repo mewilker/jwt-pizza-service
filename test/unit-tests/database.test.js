@@ -25,7 +25,7 @@ describe('Database Initialization', () => {
     it('should initialize the database connection', async () => {
         let connection = await DB.getConnection();
         expect(connection).toBeDefined();
-        await connection.end();
+        connection.end();
     });
     //if the database is actually case-insensitive these will most likely be converted to lowercase
     it.each([
@@ -153,37 +153,6 @@ describe('getUser', () => {
     });
 });
 
-describe('updateUser', () => {
-    it('should update user name and email', async () => {
-        const email = `original-${Date.now()}@test.com`;
-        const newEmail = `updated-${Date.now()}@test.com`;
-        const user = await DB.addUser({
-            name: 'Original Name',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
-        const updated = await DB.updateUser(user.id, 'Updated Name', newEmail, null);
-        expect(updated.name).toBe('Updated Name');
-        expect(updated.email).toBe(newEmail);
-    });
-
-    it('should update user password', async () => {
-        const email = `user-${Date.now()}@test.com`;
-        const oldPassword = 'oldpassword';
-        const newPassword = 'newpassword';
-        const user = await DB.addUser({
-            name: 'Test User',
-            email,
-            password: oldPassword,
-            roles: [{ role: Role.Admin }],
-        });
-        await DB.updateUser(user.id, null, null, newPassword);
-        const retrievedUser = await DB.getUser(email, newPassword);
-        expect(retrievedUser.email).toBe(email);
-    });
-});
-
 describe('loginUser and isLoggedIn', () => {
     it('should login user and verify login status', async () => {
         const token = 'header.payload.signature';
@@ -220,12 +189,12 @@ describe('logoutUser', () => {
 describe('createFranchise', () => {
     it('should create a franchise with admins', async () => {
         const email = `admin-${Date.now()}@test.com`;
-        // const admin = await DB.addUser({
-        //     name: 'Franchise Admin',
-        //     email,
-        //     password: 'password123',
-        //     roles: [{ role: Role.Admin }],
-        // });
+        await DB.addUser({
+            name: 'Franchise Admin',
+            email,
+            password: 'password123',
+            roles: [{ role: Role.Admin }],
+        });
         const franchise = await DB.createFranchise({
             name: `Franchise ${Date.now()}`,
             admins: [{ email }],

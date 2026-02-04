@@ -75,29 +75,6 @@ class DB {
     }
   }
 
-  async updateUser(userId, name, email, password) {
-    const connection = await this.getConnection();
-    try {
-      const params = [];
-      if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        params.push(`password='${hashedPassword}'`);
-      }
-      if (email) {
-        params.push(`email='${email}'`);
-      }
-      if (name) {
-        params.push(`name='${name}'`);
-      }
-      if (params.length > 0) {
-        const query = `UPDATE user SET ${params.join(', ')} WHERE id=${userId}`;
-        await this.query(connection, query);
-      }
-      return this.getUser(email, password);
-    } finally {
-      connection.end();
-    }
-  }
 
   async loginUser(userId, token) {
     token = this.getTokenSignature(token);
