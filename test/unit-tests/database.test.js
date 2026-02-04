@@ -6,19 +6,37 @@ const config = require('../../src/config.js');
 
 beforeAll(async () => {
     let connection = await DB._getConnection(false);
-    await connection.query('DROP DATABASE IF EXISTS ?', [config.db.connection.database]);
+    await connection.query(`DROP DATABASE IF EXISTS ${config.db.connection.database}`);
+    connection.end();
+    await DB.initializeDatabase();
 });
 
 describe('Database Initialization', () => {
     it('should initialize the database connection', async () => {
         let connection = await DB.getConnection();
         expect(connection).toBeDefined();
-        it.each([])('should have the %s table', async (tableName) => {
-            
-        });
         //check that all tables are there
         //check that there is an admin
         await connection.end();
+    });
+    it.each([
+        "auth", 
+        "user",
+        "menu",
+        "franchise",
+        "store",
+        "userRole",
+        "dinerOrder",
+        "orderItem"
+    ])('should have the %s table', async (tableName) => {
+        let connection = await DB.getConnection();
+        const query = `
+        SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_SCHEMA = 'pizza' AND TABLE_NAME = ?
+        `;
+        const [rows] = await connection.query(query, [tableName]);
+        expect(rows.length).toBe(1);
+        expect(rows[0].TABLE_NAME).toBe(tableName);
     });
 });
 
