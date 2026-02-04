@@ -72,14 +72,17 @@ describe('addMenuItem', () => {
     });
 });
 
-describe('getMenu', () => {
+describe('getMenu',  () => {
     it.each([0,1,2,3])('should return %i menu items', async (count) => {
-        if (count > 0) {
+        let connection = await DB.getConnection();
+        await connection.query('TRUNCATE TABLE menu');
+        await connection.end();
+        for (let i = 0; i < count; i++) {
             await DB.addMenuItem({
-                title: `Pizza ${count}`,
-                description: `A pizza ${count}`,
-                image: `pizza-${count}.jpg`,
-                price: 10.99 + count,
+                title: `Pizza ${i}`,
+                description: `A pizza ${i}`,
+                image: `pizza-${i}.jpg`,
+                price: 10.99 + i,
             });
         }
         const menu = await DB.getMenu();
