@@ -1,10 +1,22 @@
 const { DB, Role } = require('../../src/database/database.js');
-
+const mysql = require('mysql2/promise');
 const config = require('../../src/config.js');
 
+//vscode debugger timeout
+if (process.env.VSCODE_INSPECTOR_OPTIONS) {
+  jest.setTimeout(60 * 1000 * 5); // 5 minutes
+}
+
 beforeAll(async () => {
-    let connection = await DB._getConnection(false);
-    await connection.query(`DROP DATABASE IF EXISTS ${config.db.connection.database}`);
+    await DB.initialized;
+    const connection = await mysql.createConnection({
+        host: config.db.connection.host,
+        user: config.db.connection.user,
+        password: config.db.connection.password,
+        connectTimeout: config.db.connection.connectTimeout,
+        decimalNumbers: true,
+    });
+    await connection.execute(`DROP DATABASE IF EXISTS ${config.db.connection.database}`);
     connection.end();
     await DB.initializeDatabase();
 });
@@ -13,10 +25,9 @@ describe('Database Initialization', () => {
     it('should initialize the database connection', async () => {
         let connection = await DB.getConnection();
         expect(connection).toBeDefined();
-        //check that all tables are there
-        //check that there is an admin
         await connection.end();
     });
+    //if the database is actually case-insensitive these will most likely be converted to lowercase
     it.each([
         "auth", 
         "user",
@@ -35,6 +46,13 @@ describe('Database Initialization', () => {
         const [rows] = await connection.query(query, [tableName]);
         expect(rows.length).toBe(1);
         expect(rows[0].TABLE_NAME).toBe(tableName);
+        connection.end();
+    });
+    //FIXME: this backdoor is PUBLIC!!
+    it('should have an admin user', async () => {
+        const admin = await DB.getUser('a@jwt.com', 'admin');
+        expect(admin).toBeDefined();
+        expect(admin.email).toBe('a@jwt.com');
     });
 });
 
