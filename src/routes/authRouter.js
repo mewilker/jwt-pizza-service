@@ -48,7 +48,9 @@ async function setAuthUser(req, res, next) {
 }
 
 // Authenticate token
-authRouter.authenticateToken = (req, res, next) => {
+authRouter.authenticateToken = async (req, res, next) => {
+  //TODO: should be set before calling this, figure out how to make the middleware do it
+  await setAuthUser(req, res, ()=> {});
   if (!req.user) {
     return res.status(401).send({ message: 'unauthorized' });
   }
