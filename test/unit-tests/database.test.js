@@ -107,34 +107,25 @@ describe('addUser', () => {
     });
 
     it('should add a user with franchisee role', async () => {
-        const franchise = await DB.createFranchise({ name: `Test Franchise ${Date.now()}`, admins: [] });
-        const user = {
-            name: 'Test Franchisee',
-            email: `franchisee-${Date.now()}@test.com`,
-            password: 'password123',
-            roles: [{ role: Role.Franchisee, object: franchise.name }],
-        };
-        const result = await DB.addUser(user);
+        const result = await createTestUser(Role.Franchisee);
         expect(result.id).toBeDefined();
         expect(result.roles).toHaveLength(1);
         expect(result.roles[0].role).toBe(Role.Franchisee);
     });
 
-    //TODO DINER role test
+    it ('should add a diner user', async () => {
+        const result = await createTestUser(Role.Diner);
+        expect(result.id).toBeDefined();
+        expect(result.roles).toHaveLength(1);
+        expect(result.roles[0].role).toBe(Role.Diner);
+    });
 });
 
 describe('getUser', () => {
     it('should retrieve a user by email and password', async () => {
-        const email = `user-${Date.now()}@test.com`;
-        const password = 'testpass123';
-        await DB.addUser({
-            name: 'Test User',
-            email,
-            password,
-            roles: [{ role: Role.Admin }],
-        });
-        const user = await DB.getUser(email, password);
-        expect(user.email).toBe(email);
+        const result = await createTestUser(Role.Diner);
+        const user = await DB.getUser(result.email, 'password123');
+        expect(user.email).toBe(result.email);
         expect(user.password).toBeUndefined();
     });
 
@@ -143,39 +134,21 @@ describe('getUser', () => {
     });
 
     it('should throw error for incorrect password', async () => {
-        const email = `user-${Date.now()}@test.com`;
-        await DB.addUser({
-            name: 'Test User',
-            email,
-            password: 'correctpassword',
-            roles: [{ role: Role.Admin }],
-        });
-        await expect(DB.getUser(email, 'wrongpassword')).rejects.toThrow();
+        const result = await createTestUser(Role.Diner);
+        await expect(DB.getUser(result.email, 'wrongpassword')).rejects.toThrow();
     });
 
     it('should retrieve user without password check', async () => {
-        const email = `user-${Date.now()}@test.com`;
-        await DB.addUser({
-            name: 'Test User',
-            email,
-            password: 'testpass',
-            roles: [{ role: Role.Admin }],
-        });
-        const user = await DB.getUser(email);
-        expect(user.email).toBe(email);
+        const result = await createTestUser(Role.Diner);
+        const user = await DB.getUser(result.email);
+        expect(user.email).toBe(result.email);
     });
 });
 
 describe('loginUser and isLoggedIn', () => {
     it('should login user and verify login status', async () => {
         const token = 'header.payload.signature';
-        const email = `user-${Date.now()}@test.com`;
-        const user = await DB.addUser({
-            name: 'Test User',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
+        const user = await createTestUser(Role.Diner);
         await DB.loginUser(user.id, token);
         const isLoggedIn = await DB.isLoggedIn(token);
         expect(isLoggedIn).toBe(true);
@@ -185,13 +158,7 @@ describe('loginUser and isLoggedIn', () => {
 describe('logoutUser', () => {
     it('should logout user', async () => {
         const token = 'header.payload.signature2';
-        const email = `user-${Date.now()}@test.com`;
-        const user = await DB.addUser({
-            name: 'Test User',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
+        const user = await createTestUser(Role.Diner);
         await DB.loginUser(user.id, token);
         await DB.logoutUser(token);
         const isLoggedIn = await DB.isLoggedIn(token);
@@ -227,18 +194,17 @@ describe('createFranchise', () => {
     });
 });
 
+//deleteFranchise is not implemented
+
+//getFranchises is not implemented
+//getUserfranchises is not implemented
+
 describe('getFranchise', () => {
     it('should retrieve franchise with admins and stores', async () => {
-        const email = `admin-${Date.now()}@test.com`;
-        await DB.addUser({
-            name: 'Franchise Admin',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
+        const result = await createTestUser(Role.Admin);
         const franchise = await DB.createFranchise({
             name: `Franchise ${Date.now()}`,
-            admins: [{ email }],
+            admins: [{ email: result.email }],
         });
         const retrieved = await DB.getFranchise(franchise);
         expect(retrieved.admins).toBeDefined();
@@ -248,16 +214,10 @@ describe('getFranchise', () => {
 
 describe('createStore and deleteStore', () => {
     it('should create a store', async () => {
-        const email = `admin-${Date.now()}@test.com`;
-        await DB.addUser({
-            name: 'Franchise Admin',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
+        const result = await createTestUser(Role.Admin);
         const franchise = await DB.createFranchise({
             name: `Franchise ${Date.now()}`,
-            admins: [{ email }],
+            admins: [{ email: result.email }],
         });
         const store = await DB.createStore(franchise.id, { name: 'Test Store' });
         expect(store.id).toBeDefined();
@@ -266,16 +226,10 @@ describe('createStore and deleteStore', () => {
     });
 
     it('should delete a store', async () => {
-        const email = `admin-${Date.now()}@test.com`;
-        await DB.addUser({
-            name: 'Franchise Admin',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
+        const result = await createTestUser(Role.Admin);
         const franchise = await DB.createFranchise({
             name: `Franchise ${Date.now()}`,
-            admins: [{ email }],
+            admins: [{ email: result.email }],
         });
         const store = await DB.createStore(franchise.id, { name: 'Test Store' });
         await DB.deleteStore(franchise.id, store.id);
@@ -287,23 +241,11 @@ describe('createStore and deleteStore', () => {
 
 describe('addDinerOrder and getOrders', () => {
     it('should add a diner order and retrieve it', async () => {
-        const email = `user-${Date.now()}@test.com`;
-        const user = await DB.addUser({
-            name: 'Test Diner',
-            email,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
-        const franchiseEmail = `admin-${Date.now()}@test.com`;
-        await DB.addUser({
-            name: 'Franchise Admin',
-            email: franchiseEmail,
-            password: 'password123',
-            roles: [{ role: Role.Admin }],
-        });
+        const user = await createTestUser(Role.Diner);
+        const admin = await createTestUser(Role.Admin);
         const franchise = await DB.createFranchise({
             name: `Franchise ${Date.now()}`,
-            admins: [{ email: franchiseEmail }],
+            admins: [{ email: admin.email }],
         });
         const store = await DB.createStore(franchise.id, { name: 'Test Store' });
         const item = await DB.addMenuItem({
@@ -348,3 +290,24 @@ describe('getOffset', () => {
         expect(offset).toBe(10);
     });
 });
+
+async function createTestUser(role) {
+    const email = `user-${role}-${Date.now()}@test.com`;
+    const name = `Test User - ${Date.now()} ${role}`;
+    const password = 'password123';
+    if (role === Role.Franchisee){
+        const franchise = await DB.createFranchise({ name: `Test Franchise ${Date.now()}`, admins: [] });
+        return await DB.addUser({
+            name,
+            email,
+            password,
+            roles: [{ role, object: franchise.name }],
+        });
+    }
+    return await DB.addUser({
+        name,
+        email,
+        password,
+        roles: [{ role }],
+    });
+};
