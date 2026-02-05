@@ -5,6 +5,11 @@ const { authRouter, setAuthUser, setAuth } = require('../../src/routes/authRoute
 const { DB, Role } = require('../../src/database/database');
 const config = require('../../src/config');
 
+//vscode debugger timeout
+if (process.env.VSCODE_INSPECTOR_OPTIONS) {
+  jest.setTimeout(60 * 1000 * 5); // 5 minutes
+}
+
 jest.mock('../../src/database/database');
 
 let app;
@@ -111,6 +116,7 @@ describe('DELETE /api/auth - Logout', () => {
         const user = { id: 1, name: 'test user', email: 'test@jwt.com', roles: [{ role: Role.Diner }] };
         const token = jwt.sign(user, config.jwtSecret);
         DB.logoutUser.mockResolvedValue();
+        DB.isLoggedIn.mockResolvedValue(true);
 
         const res = await request(app)
             .delete('/api/auth')
