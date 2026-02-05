@@ -194,10 +194,76 @@ describe('createFranchise', () => {
     });
 });
 
-//deleteFranchise is not implemented
+describe('deleteFranchise', () => {
+    it('should delete a franchise, its stores and userRole entries', async () => {
+        const admin = await createTestUser(Role.Admin);
+        const franchise = await DB.createFranchise({
+            name: `Franchise ${Date.now()}`,
+            admins: [{ email: admin.email }],
+        });
+        await DB.createStore(franchise.id, { name: 'Store To Delete' });
 
-//getFranchises is not implemented
-//getUserfranchises is not implemented
+        await DB.deleteFranchise(franchise.id);
+
+        // verify deletion
+        let connection = await DB.getConnection();
+        let [rows] = await connection.query(`SELECT id FROM franchise WHERE id=?`, [franchise.id]);
+        expect(rows.length).toBe(0);
+        [rows] = await connection.query(`SELECT id FROM store WHERE franchiseId=?`, [franchise.id]);
+        expect(rows.length).toBe(0);
+        [rows] = await connection.query(`SELECT id FROM userRole WHERE objectId=?`, [franchise.id]);
+        expect(rows.length).toBe(0);
+        connection.end();
+    });
+});
+
+describe('getFranchises', () => {
+    it('should return franchises with stores for non-admin', async () => {
+        const admin1 = await createTestUser(Role.Admin);
+        const admin2 = await createTestUser(Role.Admin);
+        const f1 = await DB.createFranchise({ name: `Franchise ${Date.now()}-1`, admins: [{ email: admin1.email }] });
+        const f2 = await DB.createFranchise({ name: `Franchise ${Date.now()}-2`, admins: [{ email: admin2.email }] });
+        await DB.createStore(f1.id, { name: 'Store 1' });
+        await DB.createStore(f2.id, { name: 'Store 2' });
+
+        const [franchises, more] = await DB.getFranchises(undefined, 0, 10, '*');
+        expect(Array.isArray(franchises)).toBe(true);
+        expect(franchises.length).toBeGreaterThanOrEqual(2);
+        expect(more).toBe(false);
+        expect(franchises[0].stores).toBeDefined();
+        expect(franchises[0].admins).toBeUndefined();
+    });
+
+    it('should return franchises with admins when authUser is admin', async () => {
+        const admin = await createTestUser(Role.Admin);
+        const f = await DB.createFranchise({ name: `Franchise ${Date.now()}-admin`, admins: [{ email: admin.email }] });
+        await DB.createStore(f.id, { name: 'Store A' });
+
+        const authUser = { isRole: (r) => r === Role.Admin };
+        const [franchises] = await DB.getFranchises(authUser, 0, 10, '*');
+        expect(franchises.some((fr) => fr.id === f.id)).toBe(true);
+        const found = franchises.find((fr) => fr.id === f.id);
+        expect(found.admins).toBeDefined();
+        expect(found.stores).toBeDefined();
+    });
+});
+
+describe('getUserFranchises', () => {
+    it('should return franchises for a franchisee user', async () => {
+        const user = await createTestUser(Role.Franchisee);
+        const franchises = await DB.getUserFranchises(user.id);
+        expect(Array.isArray(franchises)).toBe(true);
+        expect(franchises.length).toBeGreaterThanOrEqual(1);
+        expect(franchises[0].id).toBeDefined();
+    });
+
+    it('should return empty array for user with no franchisee role', async () => {
+        const user = await createTestUser(Role.Diner);
+        const franchises = await DB.getUserFranchises(user.id);
+        expect(Array.isArray(franchises)).toBe(true);
+        expect(franchises.length).toBe(0);
+    });
+});
 
 describe('getFranchise', () => {
     it('should retrieve franchise with admins and stores', async () => {
