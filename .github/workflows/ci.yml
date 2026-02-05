@@ -55,6 +55,10 @@ jobs:
               url: 'https://pizza-factory.cs329.click',
               apiKey: '${{ secrets.FACTORY_API_KEY }}',
             },
+            admin:{
+              email: 'a@jwt.com',
+              password: 'admin',
+            },
           };" > src/config.js
 
       - name: Tests
