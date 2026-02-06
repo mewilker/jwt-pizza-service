@@ -1,16 +1,16 @@
 const request = require('supertest');
 const express = require('express');
 const franchiseRouter = require('../../src/routes/franchiseRouter');
-const { DB, Role } = require('../../src/database/database');
-const { StatusCodeError } = require('../../src/endpointHelper');
+const { DB } = require('../../src/database/database');
+const authRouter = require('../../src/routes/authRouter');
 
 jest.mock('../../src/database/database');
 jest.mock('../../src/routes/authRouter', () => ({
     authRouter: {
-        authenticateToken: (req, res, next) => {
+        authenticateToken: jest.fn((req, res, next) => {
             req.user = { id: 1, isRole: jest.fn(() => false) };
             next();
-        },
+        }),
     },
 }));
 
@@ -21,6 +21,11 @@ beforeEach(() => {
     app.use(express.json());
     app.use('/api/franchise', franchiseRouter);
     jest.clearAllMocks();
+    // reset auth middleware implementation to default non-admin user
+    authRouter.authRouter.authenticateToken.mockImplementation((req, res, next) => {
+        req.user = { id: 1, isRole: jest.fn(() => false) };
+        next();
+    });
 });
 
 describe('GET /', () => {
@@ -66,11 +71,10 @@ describe('POST /', () => {
         const mockFranchise = { id: 1, name: 'pizzaPocket' };
         DB.createFranchise.mockResolvedValue(mockFranchise);
 
-        app.use((req, res, next) => {
+        authRouter.authRouter.authenticateToken.mockImplementation((req, res, next) => {
             req.user = { id: 1, isRole: jest.fn(() => true) };
             next();
         });
-        app.use('/api/franchise', franchiseRouter);
 
         const res = await request(app)
             .post('/api/franchise')
@@ -93,12 +97,24 @@ describe('DELETE /:franchiseId', () => {
     test('should delete franchise', async () => {
         DB.deleteFranchise.mockResolvedValue(null);
 
+        authRouter.authRouter.authenticateToken.mockImplementation((req, res, next) => {
+            req.user = { id: 1, isRole: jest.fn(() => true) };
+            next();
+        });
+
         const res = await request(app)
             .delete('/api/franchise/1');
 
         expect(res.status).toBe(200);
         expect(res.body).toEqual({ message: 'franchise deleted' });
         expect(DB.deleteFranchise).toHaveBeenCalledWith(1);
+    });
+
+    test('should return 403 when user is not admin', async () => {
+        const res = await request(app)
+            .delete('/api/franchise/1');
+
+        expect(res.status).toBe(403);
     });
 });
 
