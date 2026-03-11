@@ -29,8 +29,10 @@ class DB {
     }
   }
 
-  async addUser(user) {
-    const connection = await this.getConnection();
+  async addUser(user, connection) {
+    if (!connection) {
+      connection = await this.getConnection();
+    }
     try {
       const hashedPassword = await bcrypt.hash(user.password, 10);
 
@@ -313,18 +315,16 @@ class DB {
         await connection.query(`CREATE DATABASE IF NOT EXISTS ${config.db.connection.database}`);
         await connection.query(`USE ${config.db.connection.database}`);
 
-        if (!dbExists) {
-          console.log('Successfully created database');
-        }
-
         for (const statement of dbModel.tableCreateStatements) {
           await connection.query(statement);
         }
-        //FIXME: make sure the the default admin is defined in the config
+        
         if (!dbExists) {
           const defaultAdmin = { name: '常用名字', email: config.admin.email, password: config.admin.password, roles: [{ role: Role.Admin }] };
-          await this.addUser(defaultAdmin);
+          await this.addUser(defaultAdmin, connection);
+          console.log('Successfully created database');
         }
+        
       } finally {
         connection.end();
       }
