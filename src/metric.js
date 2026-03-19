@@ -10,6 +10,7 @@ function startMetricsCycle(period){
         Object.keys(requests).forEach(endpoint => {
             metrics.push(createMetric('requests', requests[endpoint], '1', 'sum', 'asInt', { endpoint }));
         });
+
         metrics.push(createMetric('cpu_usage_percentage', getCpuUsagePercentage(), '%', 'gauge', 'asDouble', { service: 'jwt-pizza-service' }));
         metrics.push(createMetric('memory_usage_percentage', getMemoryUsagePercentage(), '%', 'gauge', 'asDouble', { service: 'jwt-pizza-service' }));
         
@@ -18,7 +19,7 @@ function startMetricsCycle(period){
 }
 
 function requestTracker(req, res, next) {
-    const endpoint = `[${req.method}] ${req.path}`;
+    const endpoint = `${req.method}`;
     requests[endpoint] = (requests[endpoint] || 0) + 1;
     next();
 }
