@@ -1,14 +1,31 @@
 const config = require('./config');
+const os = require('os');
 
 //memory store for metrics
 
+function startMetricsCycle(period){
+    setInterval(() => {
+        const metrics = [];
+        //metrics.push(createMetric());
+        metrics.push(createMetric('cpu_usage_percentage', getCpuUsagePercentage(), 'percent', 'gauge', 'double', { service: 'jwt-pizza-service' }));
+        metrics.push(createMetric('memory_usage_percentage', getMemoryUsagePercentage(), 'percent', 'gauge', 'double', { service: 'jwt-pizza-service' }));
+        
+        sendMetricToGrafana(metrics);
+    }, period);
+}
 
-setInterval(() => {
-  const metrics = [];
-  //metrics.push(createMetric());
+function getCpuUsagePercentage() {
+  const cpuUsage = os.loadavg()[0] / os.cpus().length;
+  return cpuUsage.toFixed(2) * 100;
+}
 
-  sendMetricToGrafana(metrics);
-}, 10000);
+function getMemoryUsagePercentage() {
+  const totalMemory = os.totalmem();
+  const freeMemory = os.freemem();
+  const usedMemory = totalMemory - freeMemory;
+  const memoryUsage = (usedMemory / totalMemory) * 100;
+  return memoryUsage.toFixed(2);
+}
 
 function createMetric(metricName, metricValue, metricUnit, metricType, valueType, attributes) {
   attributes = { ...attributes, source: config.metrics.source };
@@ -70,4 +87,4 @@ function sendMetricToGrafana(metrics) {
     });
 }
 
-module.exports = {};
+module.exports = { startMetricsCycle};
