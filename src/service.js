@@ -19,6 +19,7 @@ app.use((req, res, next) => {
 
 const apiRouter = express.Router();
 app.use(requestTracker);
+app.use(require('./logger.js').httpLogger);
 app.use('/api', apiRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/user', userRouter);
