@@ -4,16 +4,21 @@ class Logger {
   httpLogger = (req, res, next) => {
     let send = res.send;
     res.send = (resBody) => {
-      const logData = {
-        authorized: !!req.headers.authorization,
-        path: req.originalUrl,
-        method: req.method,
-        statusCode: res.statusCode,
-        reqBody: JSON.stringify(req.body),
-        resBody: JSON.stringify(resBody),
-      };
-      const level = this.#statusToLogLevel(res.statusCode);
-      this.log(level, 'http', logData);
+      try {
+        const logData = {
+          authorized: !!req.headers.authorization,
+          path: req.originalUrl,
+          method: req.method,
+          statusCode: res.statusCode,
+          ...(req.body && { reqBody: JSON.stringify(req.body) }),
+          resBody: JSON.stringify(resBody),
+        };
+        const level = this.#statusToLogLevel(res.statusCode);
+        this.log(level, 'http', logData);
+      } catch (err) {
+        console.log('Failed to log HTTP request:', err.message);
+        console.log(err.stack);
+      }
       res.send = send;
       return res.send(resBody);
     };
