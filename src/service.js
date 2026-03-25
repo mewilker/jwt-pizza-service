@@ -5,6 +5,7 @@ const franchiseRouter = require('./routes/franchiseRouter.js');
 const userRouter = require('./routes/userRouter.js');
 const version = require('./version.json');
 const { requestTracker } = require('./metric.js');
+const logger = require('./logger.js');
 
 const app = express();
 app.use(express.json());
@@ -19,7 +20,7 @@ app.use((req, res, next) => {
 
 const apiRouter = express.Router();
 app.use(requestTracker);
-app.use(require('./logger.js').httpLogger);
+app.use(logger.httpLogger);
 app.use('/api', apiRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/user', userRouter);
@@ -49,6 +50,7 @@ app.use('*', (req, res) => {
 // Default error handler for all exceptions and errors.
 app.use((err, req, res, next) => {
   res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
+  logger.log('error', 'uncaught', { message: err.message, stack: err.stack });
   next();
 });
 
