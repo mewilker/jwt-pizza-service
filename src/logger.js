@@ -33,6 +33,40 @@ class Logger {
     this.#sendLogToGrafana(logEvent);
   }
 
+  dbLogAndSanitize(sql, params) {
+    const safeParams = [...params];
+    if (sql.startsWith('SELECT') || sql.startsWith('DELETE')) {
+      let split = sql.split(/\s*=\s*\??\s*/);
+      for (let i = 0; i < split.length - 1; i++) {
+        if (split[i].toLowerCase().includes('token')) {
+          safeParams[i] = safeParams[i].slice(0, 4) + '****';
+        }
+        if (split[i].toLowerCase().includes('email')) {
+          safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
+        }
+      }
+      
+    }
+    else if (sql.startsWith('INSERT')) {
+      const match = sql.match(/\(([^)]+)\)/);
+      const columns = match ? match[1] : null;
+      const colsArray = columns.split(/\s*,\s*/);
+      for (let i = 0; i < colsArray.length; i++) {
+        if (colsArray[i].toLowerCase().includes('token')) {
+          safeParams[i] = safeParams[i].slice(0, 4) + '****';
+        }
+        if (colsArray[i].toLowerCase().includes('email')) {
+          safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
+        }
+        if (colsArray[i].toLowerCase().includes('password')) {
+          safeParams[i] = '*****';
+        }
+      }
+    }
+    const logData = { sql, params: JSON.stringify(safeParams) };
+    this.log('info', 'database', logData);
+  }
+
   #statusToLogLevel(statusCode) {
     if (statusCode >= 500) return 'error';
     if (statusCode >= 400) return 'warn';
@@ -44,6 +78,11 @@ class Logger {
   }
 
   #sanitize(logData) {
+    logData = {
+      ...logData,
+      token: logData.token ? logData.token.slice(0, 4) + '****' : undefined,
+      email: logData.email ? logData.email.slice(0, 2) + '***@' + logData.email.split('@')[1] : undefined
+    }
     logData = JSON.stringify(logData);
     return logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
   }
