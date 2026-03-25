@@ -34,35 +34,41 @@ class Logger {
   }
 
   dbLogAndSanitize(sql, params) {
-    const safeParams = [...params];
-    if (sql.startsWith('SELECT') || sql.startsWith('DELETE')) {
-      let split = sql.split(/\s*=\s*\??\s*/);
-      for (let i = 0; i < split.length - 1; i++) {
-        if (split[i].toLowerCase().includes('token')) {
-          safeParams[i] = safeParams[i].slice(0, 4) + '****';
+    
+    let safeParams = [];
+    if (params !== undefined &&params.length > 0){
+      safeParams = [...params];
+      if (sql.startsWith('SELECT') || sql.startsWith('DELETE')) {
+        let split = sql.split(/\s*=\s*\??\s*/);
+        for (let i = 0; i < split.length - 1; i++) {
+          safeParams[i] = String(safeParams[i]);
+          if (split[i].toLowerCase().includes('token')) {
+            safeParams[i] = safeParams[i].slice(0, 4) + '****';
+          }
+          if (split[i].toLowerCase().includes('email')) {
+            safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
+          }
         }
-        if (split[i].toLowerCase().includes('email')) {
-          safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
+        
+      }
+      else if (sql.startsWith('INSERT')) {
+        const match = sql.match(/\(([^)]+)\)/);
+        const columns = match ? match[1] : null;
+        const colsArray = columns.split(/\s*,\s*/);
+        for (let i = 0; i < colsArray.length; i++) {
+          if (colsArray[i].toLowerCase().includes('token')) {
+            safeParams[i] = safeParams[i].slice(0, 4) + '****';
+          }
+          if (colsArray[i].toLowerCase().includes('email')) {
+            safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
+          }
+          if (colsArray[i].toLowerCase().includes('password')) {
+            safeParams[i] = '*****';
+          }
         }
       }
-      
     }
-    else if (sql.startsWith('INSERT')) {
-      const match = sql.match(/\(([^)]+)\)/);
-      const columns = match ? match[1] : null;
-      const colsArray = columns.split(/\s*,\s*/);
-      for (let i = 0; i < colsArray.length; i++) {
-        if (colsArray[i].toLowerCase().includes('token')) {
-          safeParams[i] = safeParams[i].slice(0, 4) + '****';
-        }
-        if (colsArray[i].toLowerCase().includes('email')) {
-          safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
-        }
-        if (colsArray[i].toLowerCase().includes('password')) {
-          safeParams[i] = '*****';
-        }
-      }
-    }
+    
     const logData = { sql, params: JSON.stringify(safeParams) };
     this.log('info', 'database', logData);
   }
