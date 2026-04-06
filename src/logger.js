@@ -32,7 +32,7 @@ class Logger {
 
     this.#sendLogToGrafana(logEvent);
   }
-
+  
   dbLogAndSanitize(sql, params) {
     
     let safeParams = [];
@@ -43,10 +43,10 @@ class Logger {
         for (let i = 0; i < split.length - 1; i++) {
           safeParams[i] = String(safeParams[i]);
           if (split[i].toLowerCase().includes('token')) {
-            safeParams[i] = safeParams[i].slice(0, 4) + '****';
+            safeParams[i] = this.#maskToken(safeParams[i]);
           }
           if (split[i].toLowerCase().includes('email')) {
-            safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
+            safeParams[i] = this.#maskEmail(safeParams[i]);
           }
         }
         
@@ -57,13 +57,13 @@ class Logger {
         const colsArray = columns.split(/\s*,\s*/);
         for (let i = 0; i < colsArray.length; i++) {
           if (colsArray[i].toLowerCase().includes('token')) {
-            safeParams[i] = safeParams[i].slice(0, 4) + '****';
+            safeParams[i] = this.#maskToken(safeParams[i]);
           }
           if (colsArray[i].toLowerCase().includes('email')) {
-            safeParams[i] = safeParams[i].slice(0, 2) + '***@' + safeParams[i].split('@')[1];
+            safeParams[i] = this.#maskEmail(safeParams[i]);
           }
           if (colsArray[i].toLowerCase().includes('password')) {
-            safeParams[i] = '*****';
+            safeParams[i] = this.#maskPassword();
           }
         }
       }
@@ -71,6 +71,21 @@ class Logger {
     
     const logData = { sql, params: JSON.stringify(safeParams) };
     this.log('info', 'database', logData);
+  }
+  
+  #maskEmail (val) {
+    if (typeof val !== 'string') return val;
+    const [name, domain] = val.split('@');
+    if (!domain) return '***';
+    return name.slice(0, 2) + '***@' + domain;
+  };
+
+  #maskToken (val) {
+    return typeof val === 'string' ? val.slice(0, 4) + '****' : val;
+  }
+
+  #maskPassword() {
+    return '*****';
   }
 
   #statusToLogLevel(statusCode) {
