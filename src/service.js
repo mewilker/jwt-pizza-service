@@ -4,7 +4,7 @@ const orderRouter = require('./routes/orderRouter.js');
 const franchiseRouter = require('./routes/franchiseRouter.js');
 const userRouter = require('./routes/userRouter.js');
 const version = require('./version.json');
-const { requestTracker } = require('./metric.js');
+const { requestTracker, latencyTracker } = require('./metric.js');
 const logger = require('./logger.js');
 
 const app = express();
@@ -20,6 +20,7 @@ app.use((req, res, next) => {
 
 const apiRouter = express.Router();
 app.use(requestTracker);
+app.use(latencyTracker)
 app.use(logger.httpLogger);
 app.use('/api', apiRouter);
 apiRouter.use('/auth', authRouter);
